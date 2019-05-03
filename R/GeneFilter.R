@@ -3,6 +3,10 @@
 #'
 #' @param obj 
 #'
+#' @importFrom dpylr filter
+#' @importFrom tibble rownames_to_column column_to_rownames
+#' @importFrom Hmisc "%nin%
+#'
 #' @return
 #' @export
 #'
@@ -10,21 +14,16 @@
 GeneFilter <- function(obj) {
   maxexp <- dim(obj$newdata)[2] * 0.8
   data(excludeGene)
-  excludeGene <- as.character(excludeGene[, 1])
-  geneSumm <- obj$geneSumm
-  index <- match(geneSumm$gene, excludeGene)
-  geneSumm <- geneSumm[is.na(index), ]
-  data <- obj$newdata
-  index <- match(geneSumm$gene, rownames(data))
-  data <- data[index, ]
-  binadata <- obj$binadata
-  binadata <- binadata[index, ]
+  binadata <- obj$binadata %>% 
+    as.data.frame() %>% 
+    rownames_to_column('name') %>% 
+    filter(name %nin% excludeGene$Gene) %>% 
+    column_to_rownames('name') %>% 
+    as.matrix()
   geneindex <- rowSums(binadata)
-  binadata <- binadata[geneindex < maxexp, ]
-  data <- data[geneindex < maxexp, ]
-  geneSumm <- geneSumm[geneindex < maxexp, ]
-  obj$newdata <- data
-  obj$geneSumm <- geneSumm
-  obj$binadata <- as.matrix(binadata)
+  
+  obj$binadata <- binadata[names(geneindex < maxexp), ]
+  obj$data <- obj$data[names(geneindex < maxexp), ]
+  obj$geneSumm <- obj$geneSumm[names(geneindex < maxexp), ]
   return(obj)
 }
